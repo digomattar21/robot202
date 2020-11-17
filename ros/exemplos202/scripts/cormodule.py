@@ -28,13 +28,9 @@ def identifica_cor(frame):
     # frame = cv2.flip(frame, -1) # flip 0: eixo x, 1: eixo y, -1: 2 eixos
     frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    cor_menor = np.array([0, 50, 50])
-    cor_maior = np.array([8, 255, 255])
+    cor_menor = np.array([27, 50, 50])
+    cor_maior = np.array([33, 255, 255])
     segmentado_cor = cv2.inRange(frame_hsv, cor_menor, cor_maior)
-
-    cor_menor = np.array([172, 50, 50])
-    cor_maior = np.array([180, 255, 255])
-    segmentado_cor += cv2.inRange(frame_hsv, cor_menor, cor_maior)
 
     # Note que a notacão do numpy encara as imagens como matriz, portanto o enderecamento é
     # linha, coluna ou (y,x)
@@ -57,33 +53,33 @@ def identifica_cor(frame):
     #contornos, arvore = cv2.findContours(segmentado_cor.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)	
     contornos, arvore = cv2.findContours(segmentado_cor.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) 
 
-    maior_contorno = None
-    maior_contorno_area = 0
-
-    for cnt in contornos:
-        area = cv2.contourArea(cnt)
-        if area > maior_contorno_area:
-            maior_contorno = cnt
-            maior_contorno_area = area
 
     # Encontramos o centro do contorno fazendo a média de todos seus pontos.
-    if not maior_contorno is None :
-        cv2.drawContours(frame, [maior_contorno], -1, [0, 0, 255], 5)
-        maior_contorno = np.reshape(maior_contorno, (maior_contorno.shape[0], 2))
-        media = maior_contorno.mean(axis=0)
-        media = media.astype(np.int32)
-        cv2.circle(frame, (media[0], media[1]), 5, [0, 255, 0])
-        cross(frame, centro, [255,0,0], 1, 17)
+    if contornos is not None:
+        for cont in contornos:
+            area = cv2.contourArea(cont)
+            if area >= 50:
+                cv2.drawContours(frame, cont, -1, [0, 255, 0], 5)
+           
+        M = cv2.moments(segmentado_cor)
+        if M["m00"]!=0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            media = [int(cX),int(cY)]
+            cv2.circle(frame, (media[0], media[1]), 5, [0, 255, 0])
+            cross(frame, centro, [255,0,0], 1, 17)
+        else:
+            media=(240,320)
     else:
         media = (0, 0)
-
+    print("FRAME", frame.shape)
     # Representa a area e o centro do maior contorno no frame
     font = cv2.FONT_HERSHEY_COMPLEX_SMALL
-    cv2.putText(frame,"{:d} {:d}".format(*media),(20,100), 1, 4,(255,255,255),2,cv2.LINE_AA)
-    cv2.putText(frame,"{:0.1f}".format(maior_contorno_area),(20,50), 1, 4,(255,255,255),2,cv2.LINE_AA)
+    #cv2.putText(frame,"{:d} {:d}".format(*media),(20,100), 1, 4,(255,255,255),2,cv2.LINE_AA)
+    #cv2.putText(frame,"{:0.1f}".format(maior_contorno_area),(20,50), 1, 4,(255,255,255),2,cv2.LINE_AA)
 
    # cv2.imshow('video', frame)
     cv2.imshow('seg', segmentado_cor)
     cv2.waitKey(1)
 
-    return media, centro, maior_contorno_area
+    return media, centro
